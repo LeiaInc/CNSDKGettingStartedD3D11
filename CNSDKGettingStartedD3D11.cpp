@@ -34,14 +34,14 @@
 enum class eDemoMode { Spinning3DCube, StereoImage };
 
 // Global Variables.
-const wchar_t*                 g_windowTitle       = L"CNSDK Getting Started D3D11 Sample";
-const wchar_t*                 g_windowClass       = L"CNSDKGettingStartedD3D11WindowClass";
-int                            g_windowWidth       = 1280;
-int                            g_windowHeight      = 720;
-bool                           g_fullscreen        = true;
-leia::sdk::ILeiaSDK*           g_sdk               = nullptr;
-leia::sdk::ThreadedInterlacer* g_interlacer        = nullptr;
-eDemoMode                      g_demoMode          = eDemoMode::StereoImage;
+const wchar_t*                  g_windowTitle       = L"CNSDK Getting Started D3D11 Sample";
+const wchar_t*                  g_windowClass       = L"CNSDKGettingStartedD3D11WindowClass";
+int                             g_windowWidth       = 1280;
+int                             g_windowHeight      = 720;
+bool                            g_fullscreen        = true;
+leia::sdk::ILeiaSDK*            g_sdk               = nullptr;
+leia::sdk::IThreadedInterlacer* g_interlacer        = nullptr;
+eDemoMode                       g_demoMode          = eDemoMode::Spinning3DCube;
 
 // Global D3D11 Variables.
 D3D_DRIVER_TYPE           g_driverType                  = D3D_DRIVER_TYPE_NULL;

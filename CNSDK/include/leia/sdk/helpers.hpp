@@ -4,6 +4,7 @@
 #include "leia/sdk/enums.hpp"
 #include "leia/common/log.h"
 #include "leia/common/jniTypes.h"
+#include "leia/headTracking/service/common.hpp"
 #include "leia/headTracking/common/frameAdapter.hpp"
 
 namespace leia {
