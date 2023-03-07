@@ -599,7 +599,13 @@ HRESULT InitializeD3D11(HWND hWnd)
             sd.BufferUsage        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
             sd.BufferCount        = 1;
 
-            hr = dxgiFactory2->CreateSwapChainForHwnd(g_device, hWnd, &sd, nullptr, nullptr, &g_swapChain1);
+            DXGI_SWAP_CHAIN_FULLSCREEN_DESC fssd = {};
+            fssd.RefreshRate             = {0, 0};
+            fssd.Scaling                 = DXGI_MODE_SCALING_UNSPECIFIED;
+            fssd.ScanlineOrdering        = DXGI_MODE_SCANLINE_ORDER_UNSPECIFIED;
+            fssd.Windowed                = FALSE;
+
+            hr = dxgiFactory2->CreateSwapChainForHwnd(g_device, hWnd, &sd, &fssd, nullptr, &g_swapChain1);
             if (SUCCEEDED(hr))
             {
                 hr = g_swapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&g_swapChain));
@@ -617,17 +623,16 @@ HRESULT InitializeD3D11(HWND hWnd)
         {
             // DirectX 11.0 systems
             DXGI_SWAP_CHAIN_DESC sd = {};
-            sd.BufferCount                        = 1;
-            sd.BufferDesc.Width                   = width;
-            sd.BufferDesc.Height                  = height;
-            sd.BufferDesc.Format                  = g_renderTargetViewFormat;
-            sd.BufferDesc.RefreshRate.Numerator   = 60;
-            sd.BufferDesc.RefreshRate.Denominator = 1;
-            sd.BufferUsage                        = DXGI_USAGE_RENDER_TARGET_OUTPUT;
-            sd.OutputWindow                       = hWnd;
-            sd.SampleDesc.Count                   = 1;
-            sd.SampleDesc.Quality                 = 0;
-            sd.Windowed                           = TRUE;
+            sd.BufferCount            = 1;
+            sd.BufferDesc.Width       = width;
+            sd.BufferDesc.Height      = height;
+            sd.BufferDesc.Format      = g_renderTargetViewFormat;
+            sd.BufferDesc.RefreshRate = {0, 0};
+            sd.BufferUsage            = DXGI_USAGE_RENDER_TARGET_OUTPUT;
+            sd.OutputWindow           = hWnd;
+            sd.SampleDesc.Count       = 1;
+            sd.SampleDesc.Quality     = 0;
+            sd.Windowed               = TRUE;
 
             hr = dxgiFactory->CreateSwapChain(g_device, &sd, &g_swapChain);
             if (FAILED(hr))
