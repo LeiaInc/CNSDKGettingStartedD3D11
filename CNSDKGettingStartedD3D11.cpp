@@ -1124,8 +1124,8 @@ void Render(float elapsedTime)
             // Get camera properties.
             glm::vec3 camPos = glm::vec3(0, 0, 0);
             glm::vec3 camDir = glm::vec3(0, 1, 0);
-            glm::vec3 camUp = glm::vec3(0, 0, 1);
-
+            glm::vec3 camUp  = glm::vec3(0, 0, 1);
+            
             // Compute view position and projection matrix for view.
             vec3f viewPos = vec3f(0, 0, 0);
             mat4f cameraProjection;
@@ -1148,7 +1148,7 @@ void Render(float elapsedTime)
 
             // Get camera transform.
             mat4f cameraTransform;
-            cameraTransform.lookAt(camPos, camPos + camDir, vec3f(0.0f, 0.0f, 1.0f));
+            cameraTransform.lookAt(viewPos, viewPos + camDir, camUp);
 
             // Compute combined matrix.
             const mat4f mvp = cameraProjection * cameraTransform * geometryTransform;
