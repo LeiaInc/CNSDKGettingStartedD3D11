@@ -16,23 +16,13 @@
 typedef EGLContext HGLRC;
 #endif
 
-namespace leia::opengl {
+namespace leia {
+namespace opengl {
 
 struct SavedOpenGLState
 {
     static const int scMaxVertexAttribArray = 16;
     static const int scMaxBoundTextures     = 16;
-
-    struct SavedVertexAttribArray
-    {
-        GLint Index      = 0;
-        GLint Enabled    = 0;
-        GLint Size       = 0;
-        GLint Type       = 0;
-        GLint Normalized = 0;
-        GLint Stride     = 0;
-        void* Pointer    = nullptr;
-    };
 
     GLint Program                           = 0;
     GLint VAO                               = 0;
@@ -40,23 +30,25 @@ struct SavedOpenGLState
     GLint ElementArrayBuffer                = 0;
     GLint FrameBuffer                       = 0;
     GLint RenderBuffer                      = 0;
-    int   MaxSavedVertexAttribArray         = 0;
     GLint Viewport[4]                       = { 0,0,0,0 };
     int   MaxBoundTextures                  = 0;
     GLint BoundTextures[scMaxBoundTextures] = { 0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0 };
     GLint ActiveTexture                     = 0;
-    SavedVertexAttribArray VertexAttribArray[scMaxVertexAttribArray];
+    GLint BlendEnable                       = 0;
 };
 
 LEIA_COMMON_OPENGL_API
 bool CreateRenderTarget(int width, int height, bool includeDepthBuffer, GLuint* frameBuffer, GLuint* texture, GLuint* depthBuffer, bool isProtectedTarget);
 LEIA_COMMON_OPENGL_API
-void SaveOpenGLState(SavedOpenGLState& state, int maxVertexAttribArray, int maxBoundTextures);
+void SaveOpenGLState(SavedOpenGLState& state, int maxBoundTextures);
 LEIA_COMMON_OPENGL_API
 void RestoreOpenGLState(SavedOpenGLState& state);
 LEIA_COMMON_OPENGL_API
 bool UpdateBuffers(int newWidth, int newHeight, int newCount, int& width, int& height, int& count, GLuint* textures, GLuint* depthBuffers, GLuint* renderTargets, bool isProtectedBuffer = false);
 LEIA_COMMON_OPENGL_API
 void CreateRectangularTexCoordVertexArray(float left, float bottom, float top, float right, GLuint& vertexArray, GLuint& vertexBuffer, GLuint& indexBuffer);
+LEIA_COMMON_OPENGL_API
+bool ContextExists();
 
-} // namespace leia::opengl
+} // namespace opengl
+} // namespace leia

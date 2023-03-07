@@ -1,19 +1,16 @@
-// Project Requirements:
-//    C++17
-//    3 Additional include paths for CNSDK
-
 #include <stdio.h>
-
-// CNSDKGettingStartedD3D11 includes
+#include <assert.h>
 #include "framework.h"
-#include "CNSDKGettingStartedD3D11.h"
-#include "CNSDKGettingStartedMath.h"
 
 // CNSDK includes
 #include "leia/sdk/sdk.hpp"
 #include "leia/sdk/interlacer.hpp"
 #include "leia/sdk/debugMenu.hpp"
 #include "leia/common/platform.hpp"
+
+// CNSDKGettingStartedD3D11 includes
+#include "CNSDKGettingStartedD3D11.h"
+#include "CNSDKGettingStartedMath.h"
 
 // D3D11 includes.
 #include <d3d11_1.h>
@@ -34,14 +31,18 @@
 enum class eDemoMode { Spinning3DCube, StereoImage };
 
 // Global Variables.
-const wchar_t*                  g_windowTitle       = L"CNSDK Getting Started D3D11 Sample";
-const wchar_t*                  g_windowClass       = L"CNSDKGettingStartedD3D11WindowClass";
-int                             g_windowWidth       = 1280;
-int                             g_windowHeight      = 720;
-bool                            g_fullscreen        = true;
-leia::sdk::ILeiaSDK*            g_sdk               = nullptr;
-leia::sdk::IThreadedInterlacer* g_interlacer        = nullptr;
-eDemoMode                       g_demoMode          = eDemoMode::Spinning3DCube;
+const wchar_t*                  g_windowTitle                  = L"CNSDK Getting Started D3D11 Sample";
+const wchar_t*                  g_windowClass                  = L"CNSDKGettingStartedD3D11WindowClass";
+int                             g_windowWidth                  = 1280;
+int                             g_windowHeight                 = 720;
+bool                            g_fullscreen                   = true;
+leia::sdk::ILeiaSDK*            g_sdk                          = nullptr;
+leia::sdk::IThreadedInterlacer* g_interlacer                   = nullptr;
+eDemoMode                       g_demoMode                     = eDemoMode::Spinning3DCube;
+float                           g_geometryDist                 = 500;
+bool                            g_perspective                  = true;
+float                           g_perspectiveCameraFiledOfView = 90.0f * 3.14159f / 180.0f;
+float                           g_orthographicCameraHeight     = 500.0f;
 
 // Global D3D11 Variables.
 D3D_DRIVER_TYPE           g_driverType                  = D3D_DRIVER_TYPE_NULL;
@@ -70,6 +71,8 @@ ID3D11PixelShader*        g_pixelShader                 = nullptr;
 ID3D11Texture2D*          g_imageTexture                = nullptr;
 ID3D11ShaderResourceView* g_imageShaderResourceView     = nullptr;
 
+#pragma pack(push, 1)
+
 struct CONSTANTBUFFER
 {
     mat4f transform;
@@ -79,7 +82,31 @@ struct VERTEX
 {
     float pos[3];
     float color[3];
+
+    VERTEX() = default;
+
+    VERTEX(const float* p, const float* c)
+    {
+        pos[0] = p[0];
+        pos[1] = p[1];
+        pos[2] = p[2];
+        color[0] = c[0];
+        color[1] = c[1];
+        color[2] = c[2];
+    }
+
+    VERTEX(float p0, float p1, float p2, float c0, float c1, float c2)
+    {
+        pos[0] = p0;
+        pos[1] = p1;
+        pos[2] = p2;
+        color[0] = c0;
+        color[1] = c1;
+        color[2] = c2;
+    }
 };
+
+#pragma pack(pop)
 
 void OnError(const wchar_t* msg)
 {
@@ -361,107 +388,7 @@ void SetFullscreen(HWND hWnd, bool fullscreen)
     }
 }
 
-#if 0
-HGLRC InitializeOpenGL(HWND hWnd, HDC hDC)
-{
-    HGLRC context = NULL;
-
-    PFNWGLCHOOSEPIXELFORMATARBPROC wglChoosePixelFormatARBFunc = nullptr;
-    PFNWGLCREATECONTEXTATTRIBSARBPROC wglCreateContextAttribsARBFunc = nullptr;
-    {
-        // First create a context for the purpose of getting access to wglChoosePixelFormatARB / wglCreateContextAttribsARB.
-        PIXELFORMATDESCRIPTOR pfd;
-        memset(&pfd, 0, sizeof(pfd));
-        pfd.nSize = sizeof(pfd);
-        pfd.nVersion = 1;
-        pfd.iPixelType = PFD_TYPE_RGBA;
-        pfd.dwFlags = PFD_SUPPORT_OPENGL | PFD_DRAW_TO_WINDOW | PFD_DOUBLEBUFFER;
-        pfd.cColorBits = 32;
-        pfd.cDepthBits = 16;
-        int pf = ChoosePixelFormat(hDC, &pfd);
-        if (pf == 0)
-            OnError(L"Failed to choose pixel format.");
-
-        if (!SetPixelFormat(hDC, pf, &pfd))
-            OnError(L"Failed to set pixel format.");
-
-        HGLRC context = wglCreateContext(hDC);
-        if (context == 0)
-            OnError(L"wglCreateContextfailed failed.");
-
-        if (!wglMakeCurrent(hDC, context))
-            OnError(L"wglMakeCurrent failed.");
-
-        wglChoosePixelFormatARBFunc = (PFNWGLCHOOSEPIXELFORMATARBPROC)wglGetProcAddress("wglChoosePixelFormatARB");
-        wglCreateContextAttribsARBFunc = (PFNWGLCREATECONTEXTATTRIBSARBPROC)wglGetProcAddress("wglCreateContextAttribsARB");
-
-        wglDeleteContext(context);
-
-        if (wglChoosePixelFormatARBFunc == nullptr || wglCreateContextAttribsARBFunc == nullptr)
-            OnError(L"wglChoosePixelFormatARB and/or wglCreateContextAttribsARB missing.");
-    }
-
-    // Now create the real context that we will be using.
-    const int iAttributes[] =
-    {
-        // WGL_DRAW_TO_WINDOW_ARB, GL_TRUE,
-        WGL_SUPPORT_OPENGL_ARB, GL_TRUE,
-        WGL_COLOR_BITS_ARB, 32,
-        WGL_DEPTH_BITS_ARB, 16,
-        WGL_DOUBLE_BUFFER_ARB, GL_TRUE,
-        WGL_FRAMEBUFFER_SRGB_CAPABLE_ARB, GL_TRUE,
-        0, 0
-    };
-
-    const float fAttributes[] = { 0, 0 };
-    UINT  numFormats = 0;
-    int   pf = 0;
-    if (!wglChoosePixelFormatARBFunc(hDC, iAttributes, fAttributes, 1, &pf, &numFormats))
-        OnError(L"wglChoosePixelFormatARBFunc failed.");
-
-    PIXELFORMATDESCRIPTOR pfd;
-    memset(&pfd, 0, sizeof(pfd));
-    if (!SetPixelFormat(hDC, pf, &pfd))
-        OnError(L"SetPixelFormat failed.");
-
-#ifdef _DEBUG
-    bool UseDebugContext = true;
-#else
-    bool UseDebugContext = false;
-#endif
-
-    // Crete context attributes.
-    GLint attribs[16];
-    {
-        int attribCount = 0;
-        if (UseDebugContext)
-        {
-            attribs[attribCount++] = WGL_CONTEXT_FLAGS_ARB;
-            attribs[attribCount++] = WGL_CONTEXT_DEBUG_BIT_ARB;
-        }
-
-        attribs[attribCount++] = WGL_CONTEXT_MAJOR_VERSION_ARB;
-        attribs[attribCount++] = 3;
-
-        attribs[attribCount++] = WGL_CONTEXT_MINOR_VERSION_ARB;
-        attribs[attribCount++] = 0;
-
-        attribs[attribCount++] = GL_CONTEXT_PROFILE_MASK;
-        attribs[attribCount++] = GL_CONTEXT_CORE_PROFILE_BIT;
-
-        attribs[attribCount] = 0;
-    }
-
-    context = wglCreateContextAttribsARBFunc(hDC, 0, attribs);
-    if (!wglMakeCurrent(hDC, context))
-        OnError(L"wglMakeCurrent failed.");
-       
-    return context;
-}
-#endif
-
-
-HRESULT ResizeBuffers(int width, int height)//bool prolog, bool resize, bool epilog)
+HRESULT ResizeBuffers(int width, int height)
 {
     if (g_immediateContext == nullptr)
         return S_OK;
@@ -485,10 +412,10 @@ HRESULT ResizeBuffers(int width, int height)//bool prolog, bool resize, bool epi
     }
 
     // Resize swapchain.
-    HRESULT hr = g_swapChain->ResizeBuffers(1, width/*g_windowWidth*/, height/*g_windowHeight*/, g_renderTargetViewFormat, 0);
+    HRESULT hr = g_swapChain->ResizeBuffers(1, width, height, g_renderTargetViewFormat, 0);
     if (FAILED(hr))
     {
-        //LogPrint(L"Error while resizing swapchain (%s).\n", GetHRESULTString(hr));
+        OnError(L"Error while resizing swapchain.");
         return hr;
     }
         
@@ -497,7 +424,7 @@ HRESULT ResizeBuffers(int width, int height)//bool prolog, bool resize, bool epi
     hr = g_swapChain->GetBuffer(0, __uuidof(ID3D11Texture2D), reinterpret_cast<void**>(&pBackBuffer));
     if (FAILED(hr))
     {
-        //LogPrint(L"Error while getting swapchain buffer (%s).\n", GetHRESULTString(hr));
+        OnError(L"Error while getting swapchain buffer.");
         return hr;
     }
 
@@ -506,7 +433,7 @@ HRESULT ResizeBuffers(int width, int height)//bool prolog, bool resize, bool epi
     pBackBuffer->Release();
     if (FAILED(hr))
     {
-        //LogPrint(L"Error while creating rendertarget view (%s).\n", GetHRESULTString(hr));
+        OnError(L"Error while creating rendertarget view.");
         return hr;
     }
 
@@ -610,7 +537,7 @@ HRESULT InitializeD3D11(HWND hWnd)
 
     if (FAILED(hr))
     {
-        //LogPrint(L"Could not find a Direct3D11 device.\n");
+        OnError(L"Could not find a Direct3D11 device.");
         return hr;
     }
 
@@ -626,19 +553,19 @@ HRESULT InitializeD3D11(HWND hWnd)
             if (SUCCEEDED(hr))
             {
                 hr = adapter->GetParent(__uuidof(IDXGIFactory1), reinterpret_cast<void**>(&dxgiFactory));
-                //if (FAILED(hr))
-                    //LogPrint(L"Error while getting DXGIFactory from IDXGIAdapter (%s).\n", GetHRESULTString(hr));
+                if (FAILED(hr))
+                    OnError(L"Error while getting DXGIFactory from IDXGIAdapter.");
                 adapter->Release();
             }
             else
             {
-                //LogPrint(L"Error while getting IDXGIAdapter from IDXGIDevice (%s).\n", GetHRESULTString(hr));
+                OnError(L"Error while getting IDXGIAdapter from IDXGIDevice.");
             }
             dxgiDevice->Release();
         }
         else
         {
-            //LogPrint(L"Error getting DXGIDevice from ID3D11Device (%s).\n", GetHRESULTString(hr));
+            OnError(L"Error getting DXGIDevice from ID3D11Device.");
         }
 
         if (FAILED(hr))
@@ -659,7 +586,7 @@ HRESULT InitializeD3D11(HWND hWnd)
             }
             else
             {
-                //LogPrint(L"Error getting ID3D11DeviceContext1 from ID3D11DeviceContext (%s).\n", GetHRESULTString(hr));
+                OnError(L"Error getting ID3D11DeviceContext1 from ID3D11DeviceContext.");
             }
 
             DXGI_SWAP_CHAIN_DESC1 sd = {};
@@ -675,12 +602,12 @@ HRESULT InitializeD3D11(HWND hWnd)
             if (SUCCEEDED(hr))
             {
                 hr = g_swapChain1->QueryInterface(__uuidof(IDXGISwapChain), reinterpret_cast<void**>(&g_swapChain));
-                //if (FAILED(hr))
-                    //LogPrint(L"Error getting IDXGISwapChain from IDXGISwapChain1 (%s).\n", GetHRESULTString(hr));
+                if (FAILED(hr))
+                    OnError(L"Error getting IDXGISwapChain from IDXGISwapChain1.");
             }
             else
             {
-                //LogPrint(L"Error creating IDXGISwapChain1 (%s).\n", GetHRESULTString(hr));
+                OnError(L"Error creating IDXGISwapChain1.");
             }
 
             dxgiFactory2->Release();
@@ -702,12 +629,12 @@ HRESULT InitializeD3D11(HWND hWnd)
             sd.Windowed                           = TRUE;
 
             hr = dxgiFactory->CreateSwapChain(g_device, &sd, &g_swapChain);
-            //if (FAILED(hr))
-                //LogPrint(L"Error creating IDXGISwapChain (%s).\n", GetHRESULTString(hr));
+            if (FAILED(hr))
+                OnError(L"Error creating IDXGISwapChain.");
         }
 
         // Note this tutorial doesn't handle full-screen swapchains so we block the ALT+ENTER shortcut
-        dxgiFactory->MakeWindowAssociation(hWnd, 0);// DXGI_MWA_NO_ALT_ENTER);
+        dxgiFactory->MakeWindowAssociation(hWnd, 0);
 
         dxgiFactory->Release();
 
@@ -716,7 +643,7 @@ HRESULT InitializeD3D11(HWND hWnd)
     }
 
     // Update render-target view.
-    hr = ResizeBuffers(width, height);//false, false, true);
+    hr = ResizeBuffers(width, height);
     if (FAILED(hr))
         return hr;
 
@@ -760,52 +687,90 @@ void LoadScene()
 {
     if (g_demoMode == eDemoMode::Spinning3DCube)
     {
+        const float cubeWidth = 200.0f;
+        const float cubeHeight = 200.0f;
+        const float cubeDepth = 200.0f;
+
+        const float l = -cubeWidth / 2.0f;
+        const float r = l + cubeWidth;
+        const float b = -cubeHeight / 2.0f;
+        const float t = b + cubeHeight;
+        const float n = -cubeDepth / 2.0f;
+        const float f = n + cubeDepth;
+
         const int vertexCount = 8;
-        const int indexCount = 36;
+        const int indexCount  = 36;
 
-        // XYZ|RGB
-        const VERTEX vertices[vertexCount] = {
-            // Front face
-             100.0f,  100.0f,  100.0f, 1.0f, 0.4f, 0.6f,
-            -100.0f,  100.0f,  100.0f, 1.0f, 0.9f, 0.2f,
-            -100.0f, -100.0f,  100.0f, 0.7f, 0.3f, 0.8f,
-             100.0f, -100.0f,  100.0f, 1.0f, 0.3f, 1.0f,
-
-            // Back face
-             100.0f,  100.0f, -100.0f, 0.2f, 0.6f, 1.0f,
-            -100.0f,  100.0f, -100.0f, 0.6f, 1.0f, 0.4f,
-            -100.0f, -100.0f, -100.0f, 0.6f, 0.8f, 0.8f,
-             100.0f, -100.0f, -100.0f, 0.4f, 0.8f, 0.8f,
+        const float cubeVerts[vertexCount][3] =
+        {
+            {l, n, b}, // Left Near Bottom
+            {l, f, b}, // Left Far Bottom
+            {r, f, b}, // Right Far Bottom
+            {r, n, b}, // Right Near Bottom
+            {l, n, t}, // Left Near Top
+            {l, f, t}, // Left Far Top
+            {r, f, t}, // Right Far Top
+            {r, n, t}  // Right Near Top
         };
 
-        const unsigned short indices[indexCount] = {
-            0, 1, 2, // Front
-            2, 3, 0,
-            0, 3, 7, // Right
-            7, 4, 0,
-            2, 6, 7, // Bottom
-            7, 3, 2,
-            1, 5, 6, // Left
-            6, 2, 1,
-            4, 7, 6, // Back
-            6, 5, 4,
-            5, 1, 0, // Top
-            0, 4, 5,
+        static const int faces[6][4] =
+        {
+            {0,1,2,3}, // bottom
+            {1,0,4,5}, // left
+            {0,3,7,4}, // front
+            {3,2,6,7}, // right
+            {2,1,5,6}, // back
+            {4,7,6,5}  // top
         };
+
+        static const float faceColors[6][3] =
+        {
+            {1,0,0},
+            {0,1,0},
+            {0,0,1},
+            {1,1,0},
+            {0,1,1},
+            {1,0,1}
+        };
+
+        std::vector<VERTEX> vertices;
+        std::vector<int> indices;
+        for (int i = 0; i < 6; i++)
+        {
+            const int i0 = faces[i][0];
+            const int i1 = faces[i][1];
+            const int i2 = faces[i][2];
+            const int i3 = faces[i][3];
+
+            // Add indices.
+            const int startIndex = (int)vertices.size();
+            indices.emplace_back(startIndex + 0);
+            indices.emplace_back(startIndex + 2);
+            indices.emplace_back(startIndex + 1);
+            indices.emplace_back(startIndex + 0);
+            indices.emplace_back(startIndex + 3);
+            indices.emplace_back(startIndex + 2);
+
+            vertices.emplace_back(VERTEX(cubeVerts[i0], faceColors[i]));
+            vertices.emplace_back(VERTEX(cubeVerts[i1], faceColors[i]));
+            vertices.emplace_back(VERTEX(cubeVerts[i2], faceColors[i]));
+            vertices.emplace_back(VERTEX(cubeVerts[i3], faceColors[i]));
+        }        
 
         // Create vertex buffer.
         {
             // Format = XYZ|RGB
-            const int vertexSize = 6 * sizeof(float);
+            const int vertexSize       = sizeof(VERTEX);
+            const int vertexBufferSize = vertices.size() * vertexSize;
 
             D3D11_BUFFER_DESC bd = {};
             bd.Usage          = D3D11_USAGE_DEFAULT;
-            bd.ByteWidth      = vertexCount * vertexSize;
+            bd.ByteWidth      = vertexBufferSize;
             bd.BindFlags      = D3D11_BIND_VERTEX_BUFFER;
             bd.CPUAccessFlags = 0;
 
             D3D11_SUBRESOURCE_DATA initData = {};
-            initData.pSysMem = vertices;
+            initData.pSysMem = vertices.data();
 
             HRESULT hr = g_device->CreateBuffer(&bd, &initData, &g_vertexBuffer);
             if (FAILED(hr))
@@ -826,17 +791,8 @@ void LoadScene()
             bd.BindFlags      = D3D11_BIND_INDEX_BUFFER;
             bd.CPUAccessFlags = 0;
 
-            // Input data is right-handed, so we reverse the triangles here.
-            int* indicesLH = new int[indexCount];
-            for (int i = 0; i < indexCount; i += 3)
-            {
-                indicesLH[i] = indices[i];
-                indicesLH[i + 1] = indices[i + 2];
-                indicesLH[i + 2] = indices[i + 1];
-            }
-
             D3D11_SUBRESOURCE_DATA initData = {};
-            initData.pSysMem = indicesLH;
+            initData.pSysMem = indices.data();
 
             HRESULT hr = g_device->CreateBuffer(&bd, &initData, &g_indexBuffer);
             if (FAILED(hr))
@@ -844,8 +800,6 @@ void LoadScene()
                 OnError(L"Error creating index buffer");
                 return;
             }
-
-            delete[] indicesLH;
         }        
 
         {
@@ -1144,9 +1098,8 @@ void Render(float elapsedTime)
         // geometry transform.
         mat4f geometryTransform;
         {
-            // Place cube at convergence distance.
-            float convergenceDistance = g_sdk->GetConvergenceDistance();
-            vec3f geometryPos = vec3f(0, convergenceDistance, 0);
+            // Place cube at specified distance.
+            vec3f geometryPos = vec3f(0, g_geometryDist, 0);
 
             mat3f geometryOrientation;
             geometryOrientation.setIdentity();
@@ -1167,26 +1120,30 @@ void Render(float elapsedTime)
         // Render stereo views.
         for (int i = 0; i < 2; i++)
         {
-            // Get view offset.
-            const glm::vec3 viewOffset = g_interlacer->GetViewOffset(i);
+            // Get camera properties.
+            glm::vec3 camPos = glm::vec3(0, 0, 0);
+            glm::vec3 camDir = glm::vec3(0, 1, 0);
+            glm::vec3 camUp = glm::vec3(0, 0, 1);
 
-            // Get shear to apply to perspective projection.
-            const float convergenceDistance = g_sdk->GetConvergenceDistance();
-            const float shearX = -viewOffset.x / convergenceDistance;
-            const float shearY = -viewOffset.z / convergenceDistance;
-
-            // Create camera projection with shear.
+            // Compute view position and projection matrix for view.
+            vec3f viewPos = vec3f(0, 0, 0);
             mat4f cameraProjection;
-            cameraProjection.setPerspective(90.0f * (3.14159f / 180.0f), aspectRatio, 0.01f, 1000.0f);
-            cameraProjection[2][0] = cameraProjection[0][0] * shearX;
-            cameraProjection[2][1] = cameraProjection[1][1] * shearY;
-
-            // Get camera position (including offset from interlacer).
-            vec3f camPos = vec3f(0, 0, 0);
-            camPos += vec3f(viewOffset.x, viewOffset.z, viewOffset.y);
-
-            // Get camera direction.
-            vec3f camDir = vec3f(0, 1, 0);
+            if (g_perspective)
+            {
+                glm::mat4 viewProjMat;
+                glm::vec3 viewCamPos;
+                g_interlacer->GetConvergedPerspectiveViewInfo(i, camPos, camDir, camUp, g_perspectiveCameraFiledOfView, aspectRatio, 1.0f, 10000.0f, &viewCamPos, &viewProjMat);
+                cameraProjection = mat4f(viewProjMat);
+                viewPos = vec3f(viewCamPos);
+            }
+            else
+            {
+                glm::mat4 viewProjMat;
+                glm::vec3 viewCamPos;
+                g_interlacer->GetConvergedOrthographicViewInfo(i, camPos, camDir, camUp, g_orthographicCameraHeight * aspectRatio, g_orthographicCameraHeight, 1.0f, 10000.0f, &viewCamPos, &viewProjMat);
+                cameraProjection = mat4f(viewProjMat);
+                viewPos = vec3f(viewCamPos);
+            }
 
             // Get camera transform.
             mat4f cameraTransform;
