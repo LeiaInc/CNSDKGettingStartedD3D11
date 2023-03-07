@@ -43,6 +43,7 @@ float                           g_geometryDist                 = 500;
 bool                            g_perspective                  = true;
 float                           g_perspectiveCameraFiledOfView = 90.0f * 3.14159f / 180.0f;
 float                           g_orthographicCameraHeight     = 500.0f;
+bool                            g_showGUI                      = true;
 
 // Global D3D11 Variables.
 D3D_DRIVER_TYPE           g_driverType                  = D3D_DRIVER_TYPE_NULL;
@@ -666,21 +667,21 @@ void InitializeCNSDK(HWND hWnd)
     g_interlacer->InitializeD3D11(g_immediateContext, leia::sdk::eLeiaTaskResponsibility::SDK, leia::sdk::eLeiaTaskResponsibility::SDK, leia::sdk::eLeiaTaskResponsibility::SDK);
 
     // Initialize interlacer GUI.
-    leia::sdk::DebugMenuInitArgs debugMenuInitArgs;
-    debugMenuInitArgs.gui.surface = hWnd;
-    debugMenuInitArgs.gui.d3d11Device = g_device;
-    debugMenuInitArgs.gui.d3d11DeviceContext = g_immediateContext;
-    debugMenuInitArgs.gui.graphicsAPI = leia::sdk::GuiGraphicsAPI::D3D11;
-    g_interlacer->InitializeGui(debugMenuInitArgs);
+    if (g_showGUI)
+    {
+        leia::sdk::DebugMenuInitArgs debugMenuInitArgs;
+        debugMenuInitArgs.gui.surface = hWnd;
+        debugMenuInitArgs.gui.d3d11Device = g_device;
+        debugMenuInitArgs.gui.d3d11DeviceContext = g_immediateContext;
+        debugMenuInitArgs.gui.graphicsAPI = leia::sdk::GuiGraphicsAPI::D3D11;
+        g_interlacer->InitializeGui(debugMenuInitArgs);
+    }
 
     // Set stereo sliding mode.
     g_interlacer->SetInterlaceMode(leia::sdk::eLeiaInterlaceMode::StereoSliding);
     const int numViews = g_interlacer->GetNumViews();
     if (numViews != 2)
         OnError(L"Unexpected number of views");
-
-    // Have to init this after a glContext is created but before we make any calls to OpenGL
-    g_interlacer->InitOnDesiredThread();
 }
 
 void LoadScene()
@@ -1231,7 +1232,7 @@ void UpdateWindowTitle(HWND hWnd, double curTime)
 LRESULT CALLBACK WndProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
 {
     // Allow CNSDK debug menu to see window messages
-    if (g_interlacer != nullptr)
+    if ((g_interlacer != nullptr) && g_showGUI)
     {
         auto io = g_interlacer->ProcessGuiInput(hWnd, message, wParam, lParam);
         if (io.wantCaptureInput)
