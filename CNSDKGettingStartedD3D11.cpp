@@ -36,8 +36,7 @@ const wchar_t*                         g_windowClass                  = L"CNSDKG
 int                                    g_windowWidth                  = 1280;
 int                                    g_windowHeight                 = 720;
 bool                                   g_fullscreen                   = true;
-leia::CoreLibrary                      g_coreLibrary;
-std::unique_ptr<leia::Core>            g_sdk;
+std::unique_ptr<leia::Core>            g_sdk                          = nullptr;
 std::unique_ptr<leia::InterlacerD3D11> g_interlacer                   = nullptr;
 eDemoMode                              g_demoMode                     = eDemoMode::Spinning3DCube;
 float                                  g_geometryDist                 = 500;
